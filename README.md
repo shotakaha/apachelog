@@ -70,7 +70,7 @@ Install the package with pip:
 
     python -m pip install .
 
-Python 3.8 or newer is supported.
+Python 3.11 or newer is supported.
 
 ## Tests
 
