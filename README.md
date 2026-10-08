@@ -50,12 +50,18 @@ Generally you should be able to copy and paste the format string from your confi
 
 ## Installation
 
-Just clone this repository and run `python setup.py install` and you'll be on your way!
+Install the package with pip:
+
+    python -m pip install .
+
+Python 3.8 or newer is required.
 
 ## Tests
 
-This program includes built-in unit testing, available by just running the apachelog.py file with no arguments.
+Run the regression tests from the repository root:
+
+    python -m unittest discover -s tests
 
 ## License
 
-This project is licensed under the [Artistic License](http://dev.perl.org/licenses/artistic.html).
+This project is licensed under the Artistic License.

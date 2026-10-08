@@ -148,7 +148,7 @@ class parser:
             
             self._names.append(self.alias(element))
             
-            subpattern = '(\S*)'
+            subpattern = r'(\S*)'
             
             if hasquotes:
                 if element == '%r' or findreferreragent.search(element):
@@ -167,7 +167,7 @@ class parser:
         self._pattern = '^' + ' '.join(subpatterns) + '$'
         try:
             self._regex = re.compile(self._pattern)
-        except Exception, e:
+        except Exception as e:
             raise ApacheLogParserError(e)
         
     def parse(self, line):
