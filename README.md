@@ -88,7 +88,7 @@ Create a release after committing the changes:
 
     uvx --from commitizen cz bump
 
-Commitizen updates the project and module versions, generates the changelog in `CHANGELOG`, and creates a `v<version>` tag. Features trigger minor releases, fixes trigger patch releases, and breaking changes trigger major releases.
+Commitizen updates the project and module versions, generates the changelog in `CHANGELOG`, and creates a `<version>` tag. Features trigger minor releases, fixes trigger patch releases, and breaking changes trigger major releases.
 
 ## License
 
