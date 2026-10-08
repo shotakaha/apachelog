@@ -37,57 +37,87 @@ class parser:
     
     def _parse_format(self, format: str) -> None:
         """
-        Converts the input format to a regular
-        expression, as well as extracting fields
+        Converts whitespace-delimited format fields to a regular expression
+        and extracts their names.
 
-        Raises an exception if it couldn't compile
-        the generated regex.
+        Apache directives are treated as opaque fields except for the
+        directives that require special matching: %t and %U.
         """
-        format = format.strip()
-        format = re.sub('[ \t]+',' ',format)
-        
         subpatterns = []
-
-        findquotes = re.compile(r'^\\"')
-        findreferreragent = re.compile('Referer|User-Agent')
-        findpercent = re.compile('^%.*t$')
-        lstripquotes = re.compile(r'^\\"')
-        rstripquotes = re.compile(r'\\"$')
         self._names = []
-        
-        for element in format.split(' '):
 
-            hasquotes = 0
-            if findquotes.search(element): hasquotes = 1
+        elements = []
+        element = []
+        quoted = False
+        brace_depth = 0
+        index = 0
+        while index < len(format):
+            char = format[index]
+            if format.startswith(r'\"', index):
+                quoted = not quoted
+                element.extend(('\\', '"'))
+                index += 2
+                continue
+            if char == '{':
+                brace_depth += 1
+            elif char == '}':
+                brace_depth -= 1
+                if brace_depth < 0:
+                    raise ApacheLogParserError("Invalid format: unmatched '}'")
 
+            if char in ' \t' and not quoted and brace_depth == 0:
+                if element:
+                    elements.append(''.join(element))
+                    element = []
+            else:
+                element.append(char)
+            index += 1
+
+        if quoted:
+            raise ApacheLogParserError("Invalid format: unterminated quoted field")
+        if brace_depth:
+            raise ApacheLogParserError("Invalid format: unterminated directive parameter")
+        if element:
+            elements.append(''.join(element))
+        if not elements:
+            raise ApacheLogParserError("Invalid format: no fields specified")
+
+        directive = re.compile(
+            r"%(?:[<>])?(?:\{[^{}]+\}(?:\^[A-Za-z]{2}|[A-Za-z])|[A-Za-z])"
+        )
+        quoted_value = r'"([^"\\]*(?:\\.[^"\\]*)*)"'
+
+        for element in elements:
+            hasquotes = element.startswith(r'\"') and element.endswith(r'\"')
+            if element.startswith(r'\"') != element.endswith(r'\"'):
+                raise ApacheLogParserError("Invalid format: mismatched quotes")
             if hasquotes:
-                element = lstripquotes.sub('', element)
-                element = rstripquotes.sub('', element)
-            
+                element = element[2:-2]
+
+            if element.startswith('%') and directive.fullmatch(element) is None:
+                raise ApacheLogParserError(
+                    "Invalid Apache LogFormat directive: {!r}".format(element)
+                )
+
             self._names.append(self.alias(element))
-            
+
             subpattern = r'(\S*)'
-            
+
             if hasquotes:
-                if element == '%r' or findreferreragent.search(element):
-                    subpattern = r'\"([^"\\]*(?:\\.[^"\\]*)*)\"'
-                else:
-                    subpattern = r'\"([^\"]*)\"'
-                
-            elif findpercent.search(element):
+                subpattern = quoted_value
+            elif element == '%t':
                 subpattern = r'(\[[^\]]+\])'
-                
             elif element == '%U':
                 subpattern = '(.+?)'
-            
+
             subpatterns.append(subpattern)
-        
+
         self._pattern = '^' + ' '.join(subpatterns) + '$'
         try:
             self._regex = re.compile(self._pattern)
-        except Exception as e:
-            raise ApacheLogParserError(e)
-        
+        except re.error as error:
+            raise ApacheLogParserError(error) from error
+
     def parse(self, line: str) -> Dict[str, str]:
         """
         Parses a single line from the log file and returns
