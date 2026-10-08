@@ -50,6 +50,20 @@ You can also re-map the field names by subclassing (or re-pointing) the `alias` 
 
 Generally you should be able to copy and paste the format string from your configuration file, but remember to place it in a raw string using single-quotes, so that backslashes are handled correctly.
 
+## LogFormat support
+
+Format fields are separated by spaces or tabs. Fields wrapped in escaped
+double quotes and directive parameters in braces are kept together during
+format parsing. Directives such as `%h`, `%>s`, and `%{Referer}i` are captured
+as opaque fields; the parser does not check whether a directive is supported
+by a particular Apache version or module. `%t` matches a bracketed timestamp,
+and `%U` matches a non-empty URI path. Quoted fields are parsed as quoted
+values and may contain escaped characters.
+
+Malformed directives (for example, `%{Referer}`) and unmatched quotes or
+braces raise `ApacheLogParserError` when the parser is created. Input lines
+that do not match the configured format raise the same exception when parsed.
+
 ## Installation
 
 Install the package with pip:
