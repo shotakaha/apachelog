@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Parse Apache access log lines using a configurable log format."""
 
-__version__ = "1.1"
+__version__ = "1.1.0"
 __license__ = """Released under the same terms as Perl.
 See: http://dev.perl.org/licenses/
 """
