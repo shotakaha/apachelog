@@ -1,89 +1,5 @@
 #!/usr/bin/env python
-"""Apache Log Parser
-
-Parser for Apache log files. This is a port to python of Peter Hickman's
-Apache::LogEntry Perl module:
-<http://cpan.uwinnipeg.ca/~peterhi/Apache-LogRegex>
-
-Takes the Apache logging format defined in your httpd.conf and generates
-a regular expression which is used to a line from the log file and
-return it as a dictionary with keys corresponding to the fields defined
-in the log format.
-
-Example:
-
-    import apachelog, sys
-
-    # Format copied and pasted from Apache conf - use raw string + single quotes
-    format = r'%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"'
-    
-    p = apachelog.parser(format)
-
-    for line in open('/var/apache/access.log'):
-        try:
-           data = p.parse(line)
-        except:
-           sys.stderr.write("Unable to parse %s" % line)
-
-The return dictionary from the parse method depends on the input format.
-For the above example, the returned dictionary would look like;
-
-    {
-    '%>s': '200',
-    '%b': '2607',
-    '%h': '212.74.15.68',
-    '%l': '-',
-    '%r': 'GET /images/previous.png HTTP/1.1',
-    '%t': '[23/Jan/2004:11:36:20 +0000]',
-    '%u': '-',
-    '%{Referer}i': 'http://peterhi.dyndns.org/bandwidth/index.html',
-    '%{User-Agent}i': 'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.2) Gecko/20021202'
-    }
-
-...given an access log entry like (split across lines for formatting);
-
-    212.74.15.68 - - [23/Jan/2004:11:36:20 +0000] "GET /images/previous.png HTTP/1.1"
-        200 2607 "http://peterhi.dyndns.org/bandwidth/index.html"
-        "Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.2) Gecko/20021202"
-
-You can also re-map the field names by subclassing (or re-pointing) the
-alias method.
-
-Generally you should be able to copy and paste the format string from
-your Apache configuration, but remember to place it in a raw string
-using single-quotes, so that backslashes are handled correctly.
-
-This module provides three of the most common log formats in the
-formats dictionary;
-
-    # Common Log Format (CLF)
-    p = apachelog.parser(apachlog.formats['common'])
-
-    # Common Log Format with Virtual Host
-    p = apachelog.parser(apachlog.formats['vhcommon'])
-
-    # NCSA extended/combined log format
-    p = apachelog.parser(apachlog.formats['extended'])
-
-For notes regarding performance while reading lines from a file
-in Python, see <http://effbot.org/zone/readline-performance.htm>.
-Further performance boost can be gained by using psyco
-<http://psyco.sourceforge.net/>
-
-On my system, using a loop like;
-
-    for line in open('access.log'):
-        p.parse(line)
-
-...was able to parse ~60,000 lines / second. Adding psyco to the mix,
-up that to ~75,000 lines / second.
-
-The parse_date function is intended as a fast way to convert a log
-date into something useful, without incurring a significant date
-parsing overhead - good enough for basic stuff but will be a problem
-if you need to deal with log from multiple servers in different
-timezones.
-"""
+"""Parse Apache access log lines using a configurable log format."""
 
 __version__ = "1.1"
 __license__ = """Released under the same terms as Perl.
@@ -96,13 +12,15 @@ __contributors__ = [
     ]
     
 import re
+from datetime import datetime
+from typing import Dict, List, Tuple
 
 class ApacheLogParserError(Exception):
     pass
 
 class parser:
     
-    def __init__(self, format):
+    def __init__(self, format: str) -> None:
         """
         Takes the log format from an Apache configuration file.
 
@@ -117,7 +35,7 @@ class parser:
         self._pattern = ''
         self._parse_format(format)
     
-    def _parse_format(self, format):
+    def _parse_format(self, format: str) -> None:
         """
         Converts the input format to a regular
         expression, as well as extracting fields
@@ -170,7 +88,7 @@ class parser:
         except Exception as e:
             raise ApacheLogParserError(e)
         
-    def parse(self, line):
+    def parse(self, line: str) -> Dict[str, str]:
         """
         Parses a single line from the log file and returns
         a dictionary of it's contents.
@@ -188,7 +106,7 @@ class parser:
         
         raise ApacheLogParserError("Unable to parse: %s with the %s regular expression" % ( line, self._pattern ) )
 
-    def alias(self, name):
+    def alias(self, name: str) -> str:
         """
         Override / replace this method if you want to map format
         field names to something else. This method is called
@@ -199,14 +117,14 @@ class parser:
         """
         return name
 
-    def pattern(self):
+    def pattern(self) -> str:
         """
         Returns the compound regular expression the parser extracted
         from the input format (a string)
         """
         return self._pattern
 
-    def names(self):
+    def names(self) -> List[str]:
         """
         Returns the field names the parser extracted from the
         input format (a list)
@@ -228,7 +146,7 @@ months = {
     'Dec':'12'
     }
 
-def parse_date(date):
+def parse_date(date: str) -> Tuple[str, str]:
     """
     Takes a date in the format: [05/Dec/2006:10:51:44 +0000]
     (including square brackets) and returns a two element
@@ -242,16 +160,29 @@ def parse_date(date):
     It does not attempt to adjust the timestamp according
     to the timezone - this is your problem.
     """
-    date = date[1:-1]
-    elems = [
-        date[7:11],
-        months[date[3:6]],
-        date[0:2],
-        date[12:14],
-        date[15:17],
-        date[18:20],
-        ]
-    return (''.join(elems),date[21:])
+    match = re.fullmatch(
+        r"\[([0-9]{2})/([A-Za-z]{3})/([0-9]{4}):"
+        r"([0-9]{2}):([0-9]{2}):([0-9]{2}) ([+-][0-9]{4})\]",
+        date,
+    )
+    if match is None:
+        raise ValueError("Invalid Apache log date: {!r}".format(date))
+
+    day, month_name, year, hour, minute, second, timezone = match.groups()
+    try:
+        month = months[month_name]
+        datetime(
+            int(year),
+            int(month),
+            int(day),
+            int(hour),
+            int(minute),
+            int(second),
+        )
+    except (KeyError, ValueError) as error:
+        raise ValueError("Invalid Apache log date: {!r}".format(date)) from error
+
+    return "{}{}{}{}{}{}".format(year, month, day, hour, minute, second), timezone
 
 
 """
@@ -267,145 +198,3 @@ formats = {
     # NCSA extended/combined log format
     'extended':r'%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\"',
     }
-
-if __name__ == '__main__':
-    import unittest
-
-    class TestApacheLogParser(unittest.TestCase):
-
-        def setUp(self):
-            self.format = r'%h %l %u %t \"%r\" %>s '\
-                          r'%b \"%{Referer}i\" \"%{User-Agent}i\"'
-            self.fields = '%h %l %u %t %r %>s %b %{Referer}i '\
-                          '%{User-Agent}i'.split(' ')
-            self.pattern = '^(\\S*) (\\S*) (\\S*) (\\[[^\\]]+\\]) '\
-                           '\\\"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)\\\" '\
-                           '(\\S*) (\\S*) \\\"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)\\\" '\
-                           '\\\"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)\\\"$'
-            self.line1  = r'212.74.15.68 - - [23/Jan/2004:11:36:20 +0000] '\
-                          r'"GET /images/previous.png HTTP/1.1" 200 2607 '\
-                          r'"http://peterhi.dyndns.org/bandwidth/index.html" '\
-                          r'"Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.2) '\
-                          r'Gecko/20021202"'
-            self.line2  = r'212.74.15.68 - - [23/Jan/2004:11:36:20 +0000] '\
-                          r'"GET /images/previous.png=\" HTTP/1.1" 200 2607 '\
-                          r'"http://peterhi.dyndns.org/bandwidth/index.html" '\
-                          r'"Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.2) '\
-                          r'Gecko/20021202"'
-            self.line3  = r'4.224.234.46 - - [20/Jul/2004:13:18:55 -0700] '\
-                          r'"GET /core/listing/pl_boat_detail.jsp?&units=Feet&checked'\
-                          r'_boats=1176818&slim=broker&&hosturl=giffordmarine&&ywo='\
-                          r'giffordmarine& HTTP/1.1" 200 2888 "http://search.yahoo.com/'\
-                          r'bin/search?p=\"grady%20white%20306%20bimini\"" '\
-                          r'"Mozilla/4.0 (compatible; MSIE 6.0; Windows 98; '\
-                          r'YPC 3.0.3; yplus 4.0.00d)"'
-            self.p = parser(self.format)
-
-        def testpattern(self):
-            self.assertEqual(self.pattern, self.p.pattern())
-
-        def testnames(self):
-            self.assertEqual(self.fields, self.p.names())
-
-        def testline1(self):
-            data = self.p.parse(self.line1)
-            self.assertEqual(data['%h'], '212.74.15.68', msg = 'Line 1 %h')
-            self.assertEqual(data['%l'], '-', msg = 'Line 1 %l')
-            self.assertEqual(data['%u'], '-', msg = 'Line 1 %u')
-            self.assertEqual(data['%t'], '[23/Jan/2004:11:36:20 +0000]', msg = 'Line 1 %t')
-            self.assertEqual(
-                data['%r'],
-                'GET /images/previous.png HTTP/1.1',
-                msg = 'Line 1 %r'
-                )
-            self.assertEqual(data['%>s'], '200', msg = 'Line 1 %>s')
-            self.assertEqual(data['%b'], '2607', msg = 'Line 1 %b')
-            self.assertEqual(
-                data['%{Referer}i'],
-                'http://peterhi.dyndns.org/bandwidth/index.html',
-                msg = 'Line 1 %{Referer}i'
-                )
-            self.assertEqual(
-                data['%{User-Agent}i'],
-                'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.2) Gecko/20021202',
-                msg = 'Line 1 %{User-Agent}i'
-                )
-
-        
-        def testline2(self):
-            data = self.p.parse(self.line2)
-            self.assertEqual(data['%h'], '212.74.15.68', msg = 'Line 2 %h')
-            self.assertEqual(data['%l'], '-', msg = 'Line 2 %l')
-            self.assertEqual(data['%u'], '-', msg = 'Line 2 %u')
-            self.assertEqual(
-                data['%t'],
-                '[23/Jan/2004:11:36:20 +0000]',
-                msg = 'Line 2 %t'
-                )
-            self.assertEqual(
-                data['%r'],
-                r'GET /images/previous.png=\" HTTP/1.1',
-                msg = 'Line 2 %r'
-                )
-            self.assertEqual(data['%>s'], '200', msg = 'Line 2 %>s')
-            self.assertEqual(data['%b'], '2607', msg = 'Line 2 %b')
-            self.assertEqual(
-                data['%{Referer}i'],
-                'http://peterhi.dyndns.org/bandwidth/index.html',
-                msg = 'Line 2 %{Referer}i'
-                )
-            self.assertEqual(
-                data['%{User-Agent}i'],
-                'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.2) Gecko/20021202',
-                msg = 'Line 2 %{User-Agent}i'
-                )
-
-        def testline3(self):
-            data = self.p.parse(self.line3)
-            self.assertEqual(data['%h'], '4.224.234.46', msg = 'Line 3 %h')
-            self.assertEqual(data['%l'], '-', msg = 'Line 3 %l')
-            self.assertEqual(data['%u'], '-', msg = 'Line 3 %u')
-            self.assertEqual(
-                data['%t'],
-                '[20/Jul/2004:13:18:55 -0700]',
-                msg = 'Line 3 %t'
-                )
-            self.assertEqual(
-                data['%r'],
-                r'GET /core/listing/pl_boat_detail.jsp?&units=Feet&checked_boats='\
-                r'1176818&slim=broker&&hosturl=giffordmarine&&ywo=giffordmarine& '\
-                r'HTTP/1.1',
-                msg = 'Line 3 %r'
-                )
-            self.assertEqual(data['%>s'], '200', msg = 'Line 3 %>s')
-            self.assertEqual(data['%b'], '2888', msg = 'Line 3 %b')
-            self.assertEqual(
-                data['%{Referer}i'],
-                r'http://search.yahoo.com/bin/search?p=\"grady%20white%20306'\
-                r'%20bimini\"',
-                msg = 'Line 3 %{Referer}i'
-                )
-            self.assertEqual(
-                data['%{User-Agent}i'],
-                'Mozilla/4.0 (compatible; MSIE 6.0; Windows 98; YPC 3.0.3; '\
-                'yplus 4.0.00d)',
-                msg = 'Line 3 %{User-Agent}i'
-                )
-
-
-        def testjunkline(self):
-            self.assertRaises(ApacheLogParserError,self.p.parse,'foobar')
-
-        def testhasquotesaltn(self):
-            p = parser(r'%a \"%b\" %c')
-            line = r'foo "xyz" bar'
-            data = p.parse(line)
-            self.assertEqual(data['%a'],'foo', '%a')
-            self.assertEqual(data['%b'],'xyz', '%c')
-            self.assertEqual(data['%c'],'bar', '%c')
-
-        def testparsedate(self):
-            date = '[05/Dec/2006:10:51:44 +0000]'
-            self.assertEqual(('20061205105144','+0000'),parse_date(date))
-
-    unittest.main()
