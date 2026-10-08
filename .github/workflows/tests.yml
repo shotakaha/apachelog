@@ -16,7 +16,7 @@ jobs:
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v10
         with:
           python-version: ${{ matrix.python-version }}
-      - run: python -m unittest discover -s tests
+      - run: uv run --no-project --python ${{ matrix.python-version }} python -m unittest discover -s tests
