@@ -74,9 +74,9 @@ Python 3.8 or newer is supported.
 
 ## Tests
 
-Run the regression tests from the repository root:
+Install [uv](https://docs.astral.sh/uv/), then run the regression tests from the repository root:
 
-    python -m unittest discover -s tests
+    uv run --no-project python -m unittest discover -s tests
 
 ## License
 
