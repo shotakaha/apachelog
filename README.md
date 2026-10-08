@@ -78,6 +78,18 @@ Install [uv](https://docs.astral.sh/uv/), then run the regression tests from the
 
     uv run --no-project python -m unittest discover -s tests
 
+## Commits and releases
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) with Commitizen. Run Commitizen without installing it into the project:
+
+    uvx --from commitizen cz commit
+
+Create a release after committing the changes:
+
+    uvx --from commitizen cz bump
+
+Commitizen updates the project and module versions, generates the changelog in `CHANGELOG`, and creates a `<version>` tag. Features trigger minor releases, fixes trigger patch releases, and breaking changes trigger major releases.
+
 ## License
 
 This project is licensed under the Artistic License.
