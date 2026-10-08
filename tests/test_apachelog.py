@@ -89,6 +89,34 @@ class ApacheLogParserTests(unittest.TestCase):
             "%>s": "200",
         })
 
+    def test_format_fields_are_separated_by_spaces_or_tabs(self):
+        parser = apachelog.parser("  %h\t\t%{X-Custom}i   %>s  ")
+
+        self.assertEqual(
+            parser.parse("192.0.2.1 custom-value 200"),
+            {
+                "%h": "192.0.2.1",
+                "%{X-Custom}i": "custom-value",
+                "%>s": "200",
+            },
+        )
+
+    def test_unknown_but_well_formed_directives_are_opaque_fields(self):
+        parser = apachelog.parser("%Z")
+
+        self.assertEqual(parser.parse("custom-value"), {"%Z": "custom-value"})
+
+    def test_rejects_malformed_directives(self):
+        for format in ("%", "%{Referer}", "%{Referer}}i"):
+            with self.subTest(format=format), self.assertRaises(
+                apachelog.ApacheLogParserError
+            ):
+                apachelog.parser(format)
+
+    def test_rejects_unterminated_quoted_fields(self):
+        with self.assertRaises(apachelog.ApacheLogParserError):
+            apachelog.parser(r'\"%r')
+
     def test_names_and_pattern_are_available(self):
         self.assertEqual(
             self.parser.names(),
