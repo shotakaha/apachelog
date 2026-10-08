@@ -7,7 +7,8 @@ name = "apachelog"
 version = "1.1"
 description = "Apache access log parser"
 readme = "README.md"
-license = { text = "Artistic License" }
+license = "Artistic-1.0"
+license-files = ["LICENSE"]
 requires-python = ">=3.8"
 authors = [
     { name = "Harry Fuecks", email = "hfuecks@gmail.com" },
@@ -22,10 +23,16 @@ classifiers = [
     "Environment :: Web Environment",
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
-    "License :: OSI Approved :: Artistic License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Internet :: Log Analysis",
     "Topic :: System :: Logging",
     "Topic :: Software Development :: Libraries :: Python Modules",
@@ -34,6 +41,8 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/shotakaha/apachelog"
+Repository = "https://github.com/shotakaha/apachelog"
+Issues = "https://github.com/shotakaha/apachelog/issues"
 
 [tool.setuptools]
 py-modules = ["apachelog"]

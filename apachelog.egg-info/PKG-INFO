@@ -1,3 +1,38 @@
+Metadata-Version: 2.4
+Name: apachelog
+Version: 1.1
+Summary: Apache access log parser
+Author-email: Harry Fuecks <hfuecks@gmail.com>
+Maintainer-email: Nick Moorman <nick@nickmoorman.com>
+License-Expression: Artistic-1.0
+Project-URL: Homepage, https://github.com/shotakaha/apachelog
+Project-URL: Repository, https://github.com/shotakaha/apachelog
+Project-URL: Issues, https://github.com/shotakaha/apachelog/issues
+Keywords: apache,log,parser
+Classifier: Development Status :: 4 - Beta
+Classifier: Environment :: Console
+Classifier: Environment :: Web Environment
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: System Administrators
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Programming Language :: Python :: 3.14
+Classifier: Topic :: Internet :: Log Analysis
+Classifier: Topic :: System :: Logging
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Text Processing
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Dynamic: license-file
+
 ## Apache Access Log Parser
 
 Simple parser to turn an Apache access_log file (or any other file conforming to the Common Log Format) into a usable dictionary of values.
